@@ -8,7 +8,8 @@ const {
     deleteFurniture,
     sellFurniture,
     registerArrival,
-    getFurnitureAvailability
+    getFurnitureAvailability,
+    scanFurniture
 } = require('../controllers/furnitureController');
 const { authMiddleware, permissions } = require('../middleware/authMiddleware');
 const { logActions } = require('../middleware/loggingMiddleware');
@@ -18,6 +19,8 @@ router.use(authMiddleware);
 
 // Получить все предметы мебели
 router.get('/', getFurniture);
+
+router.post('/scan', scanFurniture);
 
 // Получить конкретный предмет мебели
 router.get('/:id', getFurnitureById);

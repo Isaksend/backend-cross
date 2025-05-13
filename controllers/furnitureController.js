@@ -215,6 +215,66 @@ const getFurnitureAvailability = async (req, res) => {
     }
 };
 
+// Сканировать мебель по коду (ID)
+const scanFurniture = async (req, res) => {
+    try {
+        const { code } = req.body;
+
+        if (!code) {
+            return res.status(400).json({ message: 'Код мебели обязателен' });
+        }
+
+        // Найти мебель по ID
+        const furniture = await Furniture.findById(code);
+
+        if (!furniture) {
+            return res.status(404).json({ message: 'Мебель с данным кодом не найдена' });
+        }
+
+        // Получить информацию о складах
+        const warehouses = await Warehouse.find({
+            'furniture.furnitureId': furniture._id
+        }).select('name location furniture');
+
+        const stockInfo = warehouses.map(warehouse => {
+            const item = warehouse.furniture.find(
+                f => f.furnitureId.toString() === furniture._id.toString()
+            );
+            return {
+                warehouseId: warehouse._id,
+                warehouseName: warehouse.name,
+                location: warehouse.location,
+                quantity: item ? item.quantity : 0,
+                lastUpdated: item ? item.lastUpdated : null
+            };
+        });
+
+        // Подсчет общего количества
+        const totalStock = stockInfo.reduce((sum, item) => sum + item.quantity, 0);
+
+        res.json({
+            success: true,
+            furniture: {
+                _id: furniture._id,
+                name: furniture.name,
+                description: furniture.description,
+                imageUrl: furniture.imageUrl,
+                dimensions: furniture.dimensions,
+                price: furniture.price,
+                createdAt: furniture.createdAt,
+                updatedAt: furniture.updatedAt
+            },
+            stock: {
+                total: totalStock,
+                warehouses: stockInfo
+            }
+        });
+    } catch (error) {
+        await logError(error, req);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getFurniture,
     getFurnitureById,
@@ -223,5 +283,6 @@ module.exports = {
     deleteFurniture,
     sellFurniture,
     registerArrival,
-    getFurnitureAvailability
+    getFurnitureAvailability,
+    scanFurniture
 };
